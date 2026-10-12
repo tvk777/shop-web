@@ -4,7 +4,10 @@ import { clearToken, getToken } from './tokenStorage'
 
 export const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL,
-  headers: { 'Content-Type': 'application/json' },
+  // Accept must be exactly application/json: axios' default ("application/json, text/plain, */*")
+  // looks like a browser to Rails, which then treats the request as HTML and Devise answers
+  // a failed login with a plain-text body instead of {"error": ...}.
+  headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
 })
 
 // On these endpoints a 401 means "wrong credentials", not "session expired".

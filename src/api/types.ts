@@ -18,6 +18,7 @@ export interface SignupRequest {
   last_name: string
   email: string
   password: string
+  password_confirmation: string
 }
 
 // Body of POST /login and POST /signup. The JWT comes in the Authorization header.

@@ -11,8 +11,18 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === 'string')
 }
 
+// A plain-text body is usable as a message; an HTML error page is not.
+function plainTextBody(data: unknown): string | null {
+  if (typeof data !== 'string') return null
+  const text = data.trim()
+  if (text === '' || text.startsWith('<')) return null
+  return text
+}
+
 // Turns any thrown value into messages that can be shown to the user.
-export function getErrorMessages(error: unknown): string[] {
+// unauthorizedMessage replaces the "session expired" text for a 401 without a body message,
+// for requests where 401 means something else (wrong credentials on /login).
+export function getErrorMessages(error: unknown, unauthorizedMessage?: string): string[] {
   if (isAxiosError(error)) {
     if (!error.response) {
       return ['Cannot reach the server. Check your connection.']
@@ -27,6 +37,9 @@ export function getErrorMessages(error: unknown): string[] {
     if (data && typeof data.error === 'string') {
       return [data.error]
     }
+    const text = plainTextBody(data)
+    if (text) return [text]
+    if (status === 401 && unauthorizedMessage) return [unauthorizedMessage]
     if (STATUS_MESSAGES[status]) return [STATUS_MESSAGES[status]]
     if (status >= 500) return ['Server error. Please try again later.']
   }
