@@ -1,3 +1,5 @@
+import { PageHeader } from '@/components/PageHeader'
+
 export function SignupPage() {
-  return <p>Signup page</p>
+  return <PageHeader title="Sign up" />
 }

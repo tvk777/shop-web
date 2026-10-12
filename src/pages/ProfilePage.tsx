@@ -1,3 +1,5 @@
+import { PageHeader } from '@/components/PageHeader'
+
 export function ProfilePage() {
-  return <p>Profile page</p>
+  return <PageHeader title="Profile" />
 }

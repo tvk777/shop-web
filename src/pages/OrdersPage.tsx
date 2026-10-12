@@ -1,3 +1,5 @@
+import { PageHeader } from '@/components/PageHeader'
+
 export function OrdersPage() {
-  return <p>Orders page</p>
+  return <PageHeader title="My orders" />
 }

@@ -1,3 +1,5 @@
+import { PageHeader } from '@/components/PageHeader'
+
 export function CartPage() {
-  return <p>Cart page</p>
+  return <PageHeader title="Cart" />
 }

@@ -1,4 +1,6 @@
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router'
+import { AppLayout } from '@/components/layout/AppLayout'
+import { PublicLayout } from '@/components/layout/PublicLayout'
 import { RedirectIfAuthenticated } from '@/components/RedirectIfAuthenticated'
 import { RequireAdmin } from '@/components/RequireAdmin'
 import { RequireAuth } from '@/components/RequireAuth'
@@ -12,22 +14,32 @@ import { SignupPage } from '@/pages/SignupPage'
 
 const router = createBrowserRouter([
   {
-    element: <RedirectIfAuthenticated />,
+    element: <PublicLayout />,
     children: [
-      { path: '/login', element: <LoginPage /> },
-      { path: '/signup', element: <SignupPage /> },
+      {
+        element: <RedirectIfAuthenticated />,
+        children: [
+          { path: '/login', element: <LoginPage /> },
+          { path: '/signup', element: <SignupPage /> },
+        ],
+      },
     ],
   },
   {
     element: <RequireAuth />,
     children: [
-      { path: '/', element: <CatalogPage /> },
-      { path: '/cart', element: <CartPage /> },
-      { path: '/orders', element: <OrdersPage /> },
-      { path: '/profile', element: <ProfilePage /> },
       {
-        element: <RequireAdmin />,
-        children: [{ path: '/admin', element: <AdminPage /> }],
+        element: <AppLayout />,
+        children: [
+          { path: '/', element: <CatalogPage /> },
+          { path: '/cart', element: <CartPage /> },
+          { path: '/orders', element: <OrdersPage /> },
+          { path: '/profile', element: <ProfilePage /> },
+          {
+            element: <RequireAdmin />,
+            children: [{ path: '/admin', element: <AdminPage /> }],
+          },
+        ],
       },
     ],
   },
@@ -35,11 +47,7 @@ const router = createBrowserRouter([
 ])
 
 function App() {
-  return (
-    <main className="mx-auto max-w-5xl px-4 py-8">
-      <RouterProvider router={router} />
-    </main>
-  )
+  return <RouterProvider router={router} />
 }
 
 export default App

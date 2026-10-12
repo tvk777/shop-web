@@ -55,12 +55,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     try {
       await authApi.logout()
-    } finally {
-      // Log out locally even if the request fails, and drop every cached query
-      // so the next user never sees this user's data.
-      clearToken()
-      queryClient.clear()
+    } catch {
+      // Ignored: the local logout below always happens, so there is nothing to report.
     }
+    // Drop every cached query so the next user never sees this user's data.
+    clearToken()
+    queryClient.clear()
   }, [queryClient])
 
   const value = useMemo<AuthContextValue>(

@@ -1,3 +1,5 @@
+import { PageHeader } from '@/components/PageHeader'
+
 export function AdminPage() {
-  return <p>Admin page</p>
+  return <PageHeader title="Admin" />
 }

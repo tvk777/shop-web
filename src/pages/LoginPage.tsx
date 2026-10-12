@@ -1,4 +1,5 @@
 import { toast } from 'sonner'
+import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
 
@@ -17,15 +18,15 @@ export function LoginPage() {
   }
 
   return (
-    <div className="space-y-4">
-      <p>Login page</p>
-      <div className="flex flex-wrap gap-2">
+    <>
+      <PageHeader title="Log in" />
+      <div className="flex flex-col gap-2">
         {TEST_ACCOUNTS.map((email) => (
           <Button key={email} onClick={() => handleLogin(email)}>
             Log in as {email}
           </Button>
         ))}
       </div>
-    </div>
+    </>
   )
 }
