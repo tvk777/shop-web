@@ -35,3 +35,11 @@ export interface AuthResult {
 export interface ApiErrorResponse {
   errors: string[]
 }
+
+// Price arrives as a string ("12.9"). description is optional in the backend.
+export interface Item {
+  id: number
+  name: string
+  description: string | null
+  price: string
+}
