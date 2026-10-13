@@ -22,11 +22,7 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { useCart } from '@/hooks/useCart'
 import { useCreateOrder } from '@/hooks/useCreateOrder'
 import { getErrorMessages } from '@/lib/errors'
-import { formatPrice, toCents } from '@/lib/format'
-
-function itemsLabel(count: number) {
-  return `${count} ${count === 1 ? 'item' : 'items'}`
-}
+import { formatPrice, itemsLabel, toCents } from '@/lib/format'
 
 export function CartPage() {
   const { lines, itemCount, totalCents, setQuantity, removeItem, clear } = useCart()

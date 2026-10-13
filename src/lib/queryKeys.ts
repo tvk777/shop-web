@@ -7,5 +7,6 @@ export const queryKeys = {
   },
   orders: {
     all: ['orders'] as const,
+    list: ['orders', 'list'] as const,
   },
 }

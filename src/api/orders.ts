@@ -28,3 +28,9 @@ export function parseUnavailableItemIds(error: unknown): number[] | null {
   }
   return null
 }
+
+// GET /orders returns every order of the current user with its lines, newest first.
+export async function getOrders(): Promise<Order[]> {
+  const response = await api.get<Order[]>('/orders')
+  return response.data
+}
