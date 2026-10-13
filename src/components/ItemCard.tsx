@@ -1,3 +1,7 @@
+import { useState } from 'react'
+import { toast } from 'sonner'
+import { QuantityStepper } from '@/components/QuantityStepper'
+import { Button } from '@/components/ui/button'
 import {
   Card,
   CardContent,
@@ -6,9 +10,19 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import type { Item } from '@/api/types'
+import { useCart } from '@/hooks/useCart'
 import { formatPrice } from '@/lib/format'
 
 export function ItemCard({ item }: { item: Item }) {
+  const { addItem } = useCart()
+  const [quantity, setQuantity] = useState(1)
+
+  function handleAdd() {
+    addItem(item, quantity)
+    toast.success(`Added ${item.name} to cart`)
+    setQuantity(1)
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -20,9 +34,9 @@ export function ItemCard({ item }: { item: Item }) {
         )}
         <p className="font-medium">{formatPrice(item.price)}</p>
       </CardContent>
-      <CardFooter>
-        {/* Step 5: quantity selector and "Add to cart" button go here. */}
-        <div data-slot="item-actions" className="w-full" />
+      <CardFooter className="flex flex-wrap items-center justify-between gap-2">
+        <QuantityStepper value={quantity} onChange={setQuantity} label={item.name} />
+        <Button onClick={handleAdd}>Add to cart</Button>
       </CardFooter>
     </Card>
   )

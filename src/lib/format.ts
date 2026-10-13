@@ -9,3 +9,8 @@ export function formatPrice(value: string | number): string {
   if (Number.isNaN(amount)) return String(value)
   return priceFormatter.format(amount)
 }
+
+// Money math is done in integer cents: "12.9" -> 1290.
+export function toCents(price: string): number {
+  return Math.round(Number(price) * 100)
+}

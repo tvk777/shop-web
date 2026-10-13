@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router'
 import { Menu } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import {
   Sheet,
@@ -11,6 +12,7 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import { useAuth } from '@/hooks/useAuth'
+import { useCart } from '@/hooks/useCart'
 import { cn } from '@/lib/utils'
 
 // Single source of links for the desktop nav and the mobile sheet.
@@ -25,6 +27,7 @@ const NAV_ITEMS = [
 // Active link reuses the shadcn button styles, so no custom colors are needed.
 function NavLinks({ mobile, onNavigate }: { mobile?: boolean; onNavigate?: () => void }) {
   const { isAdmin } = useAuth()
+  const { itemCount } = useCart()
 
   return (
     <>
@@ -45,7 +48,12 @@ function NavLinks({ mobile, onNavigate }: { mobile?: boolean; onNavigate?: () =>
           }
         >
           {item.label}
-          {/* Step 5: cart item count <Badge> goes here when item.to === '/cart' */}
+          {item.to === '/cart' && itemCount > 0 && (
+            <Badge>
+              {itemCount}
+              <span className="sr-only"> items</span>
+            </Badge>
+          )}
         </NavLink>
       ))}
     </>
