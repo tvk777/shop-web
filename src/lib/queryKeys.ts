@@ -5,4 +5,7 @@ export const queryKeys = {
     all: ['items'] as const,
     list: (q: string) => ['items', { q }] as const,
   },
+  orders: {
+    all: ['orders'] as const,
+  },
 }

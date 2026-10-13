@@ -43,3 +43,18 @@ export interface Item {
   description: string | null
   price: string
 }
+
+// Money values (price, amount) arrive as strings. The server calculates both.
+export interface OrderLine {
+  item_id: number
+  name: string
+  price: string
+  quantity: number
+}
+
+export interface Order {
+  id: number
+  amount: string
+  created_at: string
+  items: OrderLine[]
+}
