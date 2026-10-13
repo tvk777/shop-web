@@ -6,8 +6,10 @@ import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
 import { useSignup } from '@/hooks/useSignup'
 import { getErrorMessages } from '@/lib/errors'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 
 export function SignupPage() {
+  useDocumentTitle('Sign up')
   const location = useLocation()
   const signup = useSignup()
   const [firstName, setFirstName] = useState('')

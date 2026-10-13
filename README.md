@@ -1,32 +1,99 @@
-# React + TypeScript + Vite
+# Shop (web)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+A small online shop. This is the frontend. People can browse items, fill a cart, place orders and manage their profile. Admins can manage users and items.
 
-Currently, two official plugins are available:
+It talks to a separate Rails API (`shop-api`).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Live URLs
 
-## React Compiler
+- App (Vercel): `https://shop-web-weld.vercel.app/` (placeholder, replace after deploy)
+- API (Render): `https://shop-api-bqg2.onrender.com`
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Stack
 
-## Expanding the Oxlint configuration
+- Vite 8, React 19, TypeScript
+- Tailwind CSS 4 and shadcn/ui
+- React Router 7
+- TanStack Query 5 for server data
+- axios for HTTP
+- oxlint for linting
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+## Scripts
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+Install first with `npm install`.
+
+- `npm run dev` starts the dev server at http://localhost:5173.
+- `npm run build` checks types and builds the app into `dist/`.
+- `npm run lint` runs oxlint.
+
+## Environment
+
+One variable is needed: `VITE_API_URL`. It is the base URL of the API, without a trailing slash.
+
+The build fails if it is missing.
+
+**Local API.** Copy `.env.example` to `.env`. It points to `http://localhost:3000`:
+
+```
+VITE_API_URL=http://localhost:3000
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Start `shop-api` on port 3000, then run `npm run dev`.
+
+**Deployed API.** Set the variable to the Render URL:
+
+```
+VITE_API_URL=https://<your-api>.onrender.com
+```
+
+On Vercel, add it in the project settings. On the API side, `CORS_ORIGINS` must contain the URL of this app.
+
+## How it talks to the API
+
+- Requests are JSON.
+- `POST /signup` and `POST /login` return the token in the `Authorization` response header. The app sends it back as `Authorization: Bearer <token>`.
+- A `401` answer logs the user out and opens the login page.
+- Money values arrive as strings. They are converted only for display and calculations.
+
+## Features
+
+- Sign up, log in, log out
+- Catalog with debounced search
+- Cart saved in the browser
+- Checkout and order history with expandable lines
+- Profile: personal data and password
+- Admin area: users and items (admins only)
+- Offline notice, error screen and page titles
+
+## Project folders
+
+- `src/api` request functions
+- `src/hooks` query and mutation hooks
+- `src/lib` axios instance, query client, helpers
+- `src/context` auth and cart contexts
+- `src/pages` route pages
+- `src/components` shared components
+- `src/components/ui` shadcn/ui components (generated)
+
+## Demo accounts
+
+| Role  | Email             | Password      |
+| ----- | ----------------- | ------------- |
+| Admin | admin@example.com | password123   |
+| User  | user@example.com  | password123   |
+
+## Security notes
+
+The login token (a JWT) is stored in `localStorage`. The main risk is XSS: a script injected into the page could read the token.
+
+What reduces this risk:
+
+- React escapes output by default.
+- The code never uses `dangerouslySetInnerHTML`.
+- The token lives for one day.
+- The server revokes the token on logout.
+- Security headers on Vercel (added separately).
+
+The alternative is an HttpOnly cookie. It was not chosen. The API (Render) and the frontend (Vercel) are on different sites. So the cookie would be third-party, and some browsers block it. It would need a proxy or a shared domain.
+
+An HttpOnly cookie also does not remove XSS. It only stops the token from being read.

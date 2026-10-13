@@ -6,8 +6,10 @@ import { PageHeader } from '@/components/PageHeader'
 import { Button } from '@/components/ui/button'
 import { useLogin } from '@/hooks/useLogin'
 import { getErrorMessages } from '@/lib/errors'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 
 export function LoginPage() {
+  useDocumentTitle('Log in')
   const location = useLocation()
   const login = useLogin()
   const [email, setEmail] = useState('')

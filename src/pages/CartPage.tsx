@@ -20,11 +20,13 @@ import { Badge } from '@/components/ui/badge'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { useCart } from '@/hooks/useCart'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 import { useCreateOrder } from '@/hooks/useCreateOrder'
 import { getErrorMessages } from '@/lib/errors'
 import { formatPrice, itemsLabel, toCents } from '@/lib/format'
 
 export function CartPage() {
+  useDocumentTitle('Cart')
   const { lines, itemCount, totalCents, setQuantity, removeItem, clear } = useCart()
   const createOrder = useCreateOrder()
   // Derived from the error, so a new attempt (which resets the error) clears the marks.
@@ -112,7 +114,13 @@ export function CartPage() {
 
       {createOrder.isError && (
         <div className="mb-6">
-          <FormErrors errors={getErrorMessages(createOrder.error)} />
+          <FormErrors
+            errors={
+              unavailableIds.size > 0
+                ? ['Some items are no longer available. Remove them to continue.']
+                : getErrorMessages(createOrder.error)
+            }
+          />
         </div>
       )}
 

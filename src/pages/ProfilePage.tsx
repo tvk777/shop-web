@@ -16,6 +16,7 @@ import {
 import { useAuth } from '@/hooks/useAuth'
 import { useUpdateProfile } from '@/hooks/useUpdateProfile'
 import { getErrorMessages } from '@/lib/errors'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 
 // Each form has its own mutation, so pending state and errors never mix between them.
 function PersonalDataForm({ user }: { user: User }) {
@@ -173,6 +174,7 @@ function PasswordForm() {
 }
 
 export function ProfilePage() {
+  useDocumentTitle('Profile')
   const { user } = useAuth()
   // RequireAuth only renders this page with a user; the guard is for TypeScript.
   if (!user) return null

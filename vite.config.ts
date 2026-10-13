@@ -16,6 +16,22 @@ export default defineConfig(({ command, mode }) => {
 
   return {
     plugins: [react(), tailwindcss()],
+    build: {
+      rolldownOptions: {
+        output: {
+          // Vite 8 bundles with Rolldown, which has no manualChunks: use codeSplitting groups.
+          // Shared libraries get their own chunk, so app code changes do not invalidate it.
+          codeSplitting: {
+            groups: [
+              {
+                name: 'vendor',
+                test: /node_modules[\\/](react|react-dom|scheduler|react-router|@tanstack[\\/]react-query|@tanstack[\\/]query-core|axios|radix-ui|@radix-ui)[\\/]/,
+              },
+            ],
+          },
+        },
+      },
+    },
     resolve: {
       alias: {
         '@': path.resolve(import.meta.dirname, './src'),

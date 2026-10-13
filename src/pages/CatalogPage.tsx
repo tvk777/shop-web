@@ -9,8 +9,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { useItems } from '@/hooks/useItems'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 
 export function CatalogPage() {
+  useDocumentTitle('Catalog')
   const [searchParams, setSearchParams] = useSearchParams()
   const urlQ = (searchParams.get('q') ?? '').trim()
 

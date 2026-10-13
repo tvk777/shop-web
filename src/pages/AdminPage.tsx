@@ -3,6 +3,7 @@ import { NavLink, Outlet } from 'react-router'
 import { LoadingState } from '@/components/LoadingState'
 import { PageHeader } from '@/components/PageHeader'
 import { buttonVariants } from '@/components/ui/button'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 
 const SECTIONS = [
   { to: '/admin/users', label: 'Users' },
@@ -11,6 +12,7 @@ const SECTIONS = [
 
 // Small layout loaded eagerly; the sections themselves are lazy chunks (see App.tsx).
 export function AdminPage() {
+  useDocumentTitle('Admin')
   return (
     <>
       <PageHeader title="Admin" />

@@ -11,6 +11,7 @@ import { CatalogPage } from '@/pages/CatalogPage'
 import { LoginPage } from '@/pages/LoginPage'
 import { OrdersPage } from '@/pages/OrdersPage'
 import { ProfilePage } from '@/pages/ProfilePage'
+import { RouteError } from '@/pages/RouteError'
 import { SignupPage } from '@/pages/SignupPage'
 
 // Admin sections are separate chunks, so regular users never download them.
@@ -25,6 +26,7 @@ const AdminItemsPage = lazy(() =>
 const router = createBrowserRouter([
   {
     element: <PublicLayout />,
+    errorElement: <RouteError />,
     children: [
       {
         element: <RedirectIfAuthenticated />,
@@ -37,6 +39,7 @@ const router = createBrowserRouter([
   },
   {
     element: <RequireAuth />,
+    errorElement: <RouteError />,
     children: [
       {
         element: <AppLayout />,

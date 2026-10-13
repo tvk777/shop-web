@@ -10,6 +10,7 @@ import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { useOrders } from '@/hooks/useOrders'
 import { formatDateTime, formatPrice, itemsLabel, toCents } from '@/lib/format'
+import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 
 function OrderCard({ order }: { order: Order }) {
   // Local to each card, so several orders can be open at once.
@@ -64,6 +65,7 @@ function OrderCard({ order }: { order: Order }) {
 }
 
 export function OrdersPage() {
+  useDocumentTitle('My orders')
   const { data, isPending, isError, error, refetch } = useOrders()
 
   return (
