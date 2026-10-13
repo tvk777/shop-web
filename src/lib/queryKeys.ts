@@ -9,4 +9,12 @@ export const queryKeys = {
     all: ['orders'] as const,
     list: ['orders', 'list'] as const,
   },
+  admin: {
+    all: ['admin'] as const,
+    users: ['admin', 'users'] as const,
+    items: {
+      all: ['admin', 'items'] as const,
+      list: (q: string) => ['admin', 'items', { q }] as const,
+    },
+  },
 }

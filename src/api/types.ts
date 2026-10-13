@@ -64,3 +64,18 @@ export interface Order {
 export type UpdateProfileRequest =
   | { first_name: string; last_name: string; email: string }
   | { current_password: string; password: string; password_confirmation: string }
+
+// Body of PATCH /admin/users/:id. Passwords are not editable here.
+export interface AdminUserUpdate {
+  first_name: string
+  last_name: string
+  email: string
+  role: Role
+}
+
+// Body of POST /admin/items and PATCH /admin/items/:id. price is sent as a string too.
+export interface ItemInput {
+  name: string
+  description: string
+  price: string
+}

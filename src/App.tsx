@@ -1,3 +1,4 @@
+import { lazy } from 'react'
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router'
 import { AppLayout } from '@/components/layout/AppLayout'
 import { PublicLayout } from '@/components/layout/PublicLayout'
@@ -11,6 +12,15 @@ import { LoginPage } from '@/pages/LoginPage'
 import { OrdersPage } from '@/pages/OrdersPage'
 import { ProfilePage } from '@/pages/ProfilePage'
 import { SignupPage } from '@/pages/SignupPage'
+
+// Admin sections are separate chunks, so regular users never download them.
+// AdminPage renders the Suspense boundary around them.
+const AdminUsersPage = lazy(() =>
+  import('@/pages/admin/AdminUsersPage').then((m) => ({ default: m.AdminUsersPage })),
+)
+const AdminItemsPage = lazy(() =>
+  import('@/pages/admin/AdminItemsPage').then((m) => ({ default: m.AdminItemsPage })),
+)
 
 const router = createBrowserRouter([
   {
@@ -37,7 +47,17 @@ const router = createBrowserRouter([
           { path: '/profile', element: <ProfilePage /> },
           {
             element: <RequireAdmin />,
-            children: [{ path: '/admin', element: <AdminPage /> }],
+            children: [
+              {
+                path: '/admin',
+                element: <AdminPage />,
+                children: [
+                  { index: true, element: <Navigate to="users" replace /> },
+                  { path: 'users', element: <AdminUsersPage /> },
+                  { path: 'items', element: <AdminItemsPage /> },
+                ],
+              },
+            ],
           },
         ],
       },
