@@ -58,3 +58,9 @@ export interface Order {
   created_at: string
   items: OrderLine[]
 }
+
+// Body of PATCH /profile. Two separate shapes, so the data form never needs a password
+// and role can never be sent.
+export type UpdateProfileRequest =
+  | { first_name: string; last_name: string; email: string }
+  | { current_password: string; password: string; password_confirmation: string }
