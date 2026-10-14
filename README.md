@@ -81,8 +81,8 @@ The API origin must also be listed in `connect-src` of the Content-Security-Poli
 
 | Role  | Email             | Password      |
 | ----- | ----------------- | ------------- |
-| Admin | admin@example.com | password123 (also, anyone can sign up)   |
-| User  | user@example.com  | The password is provided to reviewers separately.   |
+| Admin | admin@example.com | The password is provided to reviewers separately   |
+| User  | user@example.com  | password123 (also, anyone can sign up)   |
 
 ## Security notes
 
