@@ -13,23 +13,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Session restore: with a stored token, GET /profile tells who is logged in.
   // staleTime Infinity: no refetch on focus, so a later network blip can't log the user out.
+  // Only a 401 ends the session (the axios interceptor clears the token); network and 5xx
+  // errors keep the token and use the default retry, then surface as sessionError.
   const profileQuery = useQuery({
     queryKey: queryKeys.profile,
-    queryFn: async () => {
-      try {
-        return await getProfile()
-      } catch (error) {
-        clearToken()
-        throw error
-      }
-    },
+    queryFn: getProfile,
     enabled: token !== null,
     staleTime: Infinity,
-    retry: false,
   })
 
+  // Only while no user is known yet: a failed refetch must not hide a user who is loaded.
+  const restoring = token !== null && profileQuery.data === undefined
   const user = token !== null ? (profileQuery.data ?? null) : null
-  const isLoading = token !== null && profileQuery.isPending
+  // isFetching also covers a manual retry: refetch() keeps the status "error" while it runs.
+  const isLoading = restoring && (profileQuery.isPending || profileQuery.isFetching)
+  const sessionError = restoring && profileQuery.isError ? profileQuery.error : null
+
+  const { refetch } = profileQuery
+  const retrySession = useCallback(() => {
+    void refetch()
+  }, [refetch])
 
   const startSession = useCallback(
     ({ token, user }: AuthResult): User => {
@@ -68,11 +71,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user,
       isAdmin: user?.role === 'admin',
       isLoading,
+      sessionError,
+      retrySession,
       login,
       signup,
       logout,
     }),
-    [user, isLoading, login, signup, logout],
+    [user, isLoading, sessionError, retrySession, login, signup, logout],
   )
 
   return <AuthContext value={value}>{children}</AuthContext>
