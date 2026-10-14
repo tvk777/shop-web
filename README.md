@@ -43,7 +43,7 @@ Start `shop-api` on port 3000, then run `npm run dev`.
 **Deployed API.** Set the variable to the Render URL:
 
 ```
-VITE_API_URL=https://<your-api>.onrender.com
+VITE_API_URL=https://shop-api-bqg2.onrender.com
 ```
 
 On Vercel, add it in the project settings. On the API side, `CORS_ORIGINS` must contain the URL of this app.
@@ -81,8 +81,8 @@ The API origin must also be listed in `connect-src` of the Content-Security-Poli
 
 | Role  | Email             | Password      |
 | ----- | ----------------- | ------------- |
-| Admin | admin@example.com | password123   |
-| User  | user@example.com  | password123   |
+| Admin | admin@example.com | password123 (also, anyone can sign up)   |
+| User  | user@example.com  | The password is provided to reviewers separately.   |
 
 ## Security notes
 
