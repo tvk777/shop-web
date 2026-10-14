@@ -48,6 +48,8 @@ VITE_API_URL=https://<your-api>.onrender.com
 
 On Vercel, add it in the project settings. On the API side, `CORS_ORIGINS` must contain the URL of this app.
 
+The API origin must also be listed in `connect-src` of the Content-Security-Policy in `vercel.json` (that file cannot read env vars). The build fails with a clear message if it is missing. Local builds against `localhost` skip this check.
+
 ## How it talks to the API
 
 - Requests are JSON.
@@ -92,7 +94,7 @@ What reduces this risk:
 - The code never uses `dangerouslySetInnerHTML`.
 - The token lives for one day.
 - The server revokes the token on logout.
-- Security headers on Vercel (added separately).
+- Security headers set in `vercel.json`: a Content-Security-Policy (scripts only from the app itself, API calls only to the app and the API origin), `X-Content-Type-Options`, `Referrer-Policy` and `X-Frame-Options`.
 
 The alternative is an HttpOnly cookie. It was not chosen. The API (Render) and the frontend (Vercel) are on different sites. So the cookie would be third-party, and some browsers block it. It would need a proxy or a shared domain.
 
