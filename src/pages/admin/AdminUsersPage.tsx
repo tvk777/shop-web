@@ -1,4 +1,6 @@
-import { useId, useState, type ChangeEvent, type FormEvent } from 'react'
+import { useId, useState } from 'react'
+import { Controller, useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import type { Role, User } from '@/api/types'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
@@ -34,6 +36,7 @@ import {
 import { useAdminUsers, useUpdateAdminUser } from '@/hooks/useAdminUsers'
 import { useAuth } from '@/hooks/useAuth'
 import { getErrorMessages } from '@/lib/errors'
+import { adminUserSchema } from '@/lib/schemas'
 
 const ROLES: Role[] = ['user', 'admin']
 
@@ -45,75 +48,83 @@ function fullName(user: User) {
 function UserForm({ user, onSaved }: { user: User; onSaved: () => void }) {
   const updateUser = useUpdateAdminUser()
   const roleId = useId()
-  const [firstName, setFirstName] = useState(user.first_name)
-  const [lastName, setLastName] = useState(user.last_name)
-  const [email, setEmail] = useState(user.email)
-  const [role, setRole] = useState<Role>(user.role)
-  const [errors, setErrors] = useState<string[]>([])
-
-  function handleChange(setter: (value: string) => void) {
-    return (event: ChangeEvent<HTMLInputElement>) => {
-      setter(event.target.value)
-      setErrors([])
-    }
-  }
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setErrors([])
-    updateUser.mutate(
-      {
-        id: user.id,
-        data: {
-          first_name: firstName.trim(),
-          last_name: lastName.trim(),
-          email: email.trim(),
-          role,
-        },
-      },
-      // Only local UI here; invalidation, the profile cache and the toast are in the hook.
-      { onSuccess: onSaved, onError: (error) => setErrors(getErrorMessages(error)) },
-    )
-  }
+  const { register, handleSubmit, formState, control } = useForm({
+    resolver: zodResolver(adminUserSchema),
+    defaultValues: {
+      first_name: user.first_name,
+      last_name: user.last_name,
+      email: user.email,
+      role: user.role,
+    },
+    mode: 'onTouched',
+    reValidateMode: 'onChange',
+  })
+  const { errors } = formState
+  const [serverErrors, setServerErrors] = useState<string[]>([])
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    // onChange bubbles from every input: editing the form clears the server errors.
+    <form
+      noValidate
+      onSubmit={handleSubmit((values) => {
+        setServerErrors([])
+        updateUser.mutate(
+          { id: user.id, data: values },
+          // Only local UI here; invalidation, the profile cache and the toast are in the hook.
+          { onSuccess: onSaved, onError: (error) => setServerErrors(getErrorMessages(error)) },
+        )
+      })}
+      onChange={() => setServerErrors([])}
+      className="flex flex-col gap-4"
+    >
       <FormField
         label="First name"
         required
-        value={firstName}
-        onChange={handleChange(setFirstName)}
+        error={errors.first_name?.message}
+        {...register('first_name')}
       />
-      <FormField label="Last name" required value={lastName} onChange={handleChange(setLastName)} />
+      <FormField
+        label="Last name"
+        required
+        error={errors.last_name?.message}
+        {...register('last_name')}
+      />
       <FormField
         label="Email"
         type="email"
         required
-        value={email}
-        onChange={handleChange(setEmail)}
+        error={errors.email?.message}
+        {...register('email')}
       />
       <div className="flex flex-col gap-2">
         <Label htmlFor={roleId}>Role</Label>
-        <Select
-          value={role}
-          onValueChange={(value) => {
-            setRole(value as Role)
-            setErrors([])
-          }}
-        >
-          <SelectTrigger id={roleId} className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {ROLES.map((value) => (
-              <SelectItem key={value} value={value}>
-                {value}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        {/* The Select is not a native input, so it is wired with Controller. */}
+        <Controller
+          name="role"
+          control={control}
+          render={({ field }) => (
+            <Select
+              value={field.value}
+              onValueChange={(value) => {
+                field.onChange(value as Role)
+                setServerErrors([])
+              }}
+            >
+              <SelectTrigger id={roleId} ref={field.ref} onBlur={field.onBlur} className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {ROLES.map((value) => (
+                  <SelectItem key={value} value={value}>
+                    {value}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          )}
+        />
       </div>
-      <FormErrors errors={errors} />
+      <FormErrors errors={serverErrors} />
       <DialogFooter>
         <Button type="submit" disabled={updateUser.isPending}>
           {updateUser.isPending ? 'Saving…' : 'Save'}

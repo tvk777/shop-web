@@ -1,4 +1,6 @@
-import { useState, type ChangeEvent, type FormEvent } from 'react'
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import type { User } from '@/api/types'
 import { FormErrors } from '@/components/FormErrors'
 import { FormField } from '@/components/FormField'
@@ -16,36 +18,24 @@ import {
 import { useAuth } from '@/hooks/useAuth'
 import { useUpdateProfile } from '@/hooks/useUpdateProfile'
 import { getErrorMessages } from '@/lib/errors'
+import { passwordSchema, profileSchema } from '@/lib/schemas'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+
+function personalData(user: User) {
+  return { first_name: user.first_name, last_name: user.last_name, email: user.email }
+}
 
 // Each form has its own mutation, so pending state and errors never mix between them.
 function PersonalDataForm({ user }: { user: User }) {
   const updateProfile = useUpdateProfile()
-  const [firstName, setFirstName] = useState(user.first_name)
-  const [lastName, setLastName] = useState(user.last_name)
-  const [email, setEmail] = useState(user.email)
-  const [errors, setErrors] = useState<string[]>([])
-
-  const data = { first_name: firstName.trim(), last_name: lastName.trim(), email: email.trim() }
-  // After a save the cache holds the new user, so this turns false again by itself.
-  const changed =
-    data.first_name !== user.first_name ||
-    data.last_name !== user.last_name ||
-    data.email !== user.email
-
-  // Editing a field clears the errors.
-  function handleChange(setter: (value: string) => void) {
-    return (event: ChangeEvent<HTMLInputElement>) => {
-      setter(event.target.value)
-      setErrors([])
-    }
-  }
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setErrors([])
-    updateProfile.mutate(data, { onError: (error) => setErrors(getErrorMessages(error)) })
-  }
+  const { register, handleSubmit, formState, reset } = useForm({
+    resolver: zodResolver(profileSchema),
+    defaultValues: personalData(user),
+    mode: 'onTouched',
+    reValidateMode: 'onChange',
+  })
+  const { errors, isDirty } = formState
+  const [serverErrors, setServerErrors] = useState<string[]>([])
 
   return (
     <Card>
@@ -55,34 +45,47 @@ function PersonalDataForm({ user }: { user: User }) {
           <Badge variant="secondary">{user.role}</Badge>
         </CardAction>
       </CardHeader>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      {/* onChange bubbles from every field: editing the form clears the server errors. */}
+      <form
+        noValidate
+        onSubmit={handleSubmit((values) => {
+          setServerErrors([])
+          updateProfile.mutate(values, {
+            // The saved user becomes the new baseline, so Save is disabled again.
+            onSuccess: (saved) => reset(personalData(saved)),
+            onError: (error) => setServerErrors(getErrorMessages(error)),
+          })
+        })}
+        onChange={() => setServerErrors([])}
+        className="flex flex-col gap-6"
+      >
         <CardContent className="flex flex-col gap-4">
           <FormField
             label="First name"
             autoComplete="given-name"
             required
-            value={firstName}
-            onChange={handleChange(setFirstName)}
+            error={errors.first_name?.message}
+            {...register('first_name')}
           />
           <FormField
             label="Last name"
             autoComplete="family-name"
             required
-            value={lastName}
-            onChange={handleChange(setLastName)}
+            error={errors.last_name?.message}
+            {...register('last_name')}
           />
           <FormField
             label="Email"
             type="email"
             autoComplete="email"
             required
-            value={email}
-            onChange={handleChange(setEmail)}
+            error={errors.email?.message}
+            {...register('email')}
           />
-          <FormErrors errors={errors} />
+          <FormErrors errors={serverErrors} />
         </CardContent>
         <CardFooter>
-          <Button type="submit" disabled={updateProfile.isPending || !changed}>
+          <Button type="submit" disabled={updateProfile.isPending || !isDirty}>
             {updateProfile.isPending ? 'Saving…' : 'Save'}
           </Button>
         </CardFooter>
@@ -93,75 +96,60 @@ function PersonalDataForm({ user }: { user: User }) {
 
 function PasswordForm() {
   const updateProfile = useUpdateProfile()
-  const [currentPassword, setCurrentPassword] = useState('')
-  const [password, setPassword] = useState('')
-  const [passwordConfirmation, setPasswordConfirmation] = useState('')
-  const [errors, setErrors] = useState<string[]>([])
-
-  function handleChange(setter: (value: string) => void) {
-    return (event: ChangeEvent<HTMLInputElement>) => {
-      setter(event.target.value)
-      setErrors([])
-    }
-  }
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if (password !== passwordConfirmation) {
-      setErrors(['Passwords do not match.'])
-      return
-    }
-    setErrors([])
-    updateProfile.mutate(
-      {
-        current_password: currentPassword,
-        password,
-        password_confirmation: passwordConfirmation,
-      },
-      {
-        // Only local form state here; the cache update and the toast are in the hook.
-        onSuccess: () => {
-          setCurrentPassword('')
-          setPassword('')
-          setPasswordConfirmation('')
-        },
-        onError: (error) => setErrors(getErrorMessages(error)),
-      },
-    )
-  }
+  const { register, handleSubmit, formState, reset } = useForm({
+    resolver: zodResolver(passwordSchema),
+    defaultValues: { current_password: '', password: '', password_confirmation: '' },
+    mode: 'onTouched',
+    reValidateMode: 'onChange',
+  })
+  const { errors } = formState
+  const [serverErrors, setServerErrors] = useState<string[]>([])
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Change password</CardTitle>
       </CardHeader>
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <form
+        noValidate
+        onSubmit={handleSubmit((values) => {
+          setServerErrors([])
+          updateProfile.mutate(values, {
+            // Only local form state here; the cache update and the toast are in the hook.
+            onSuccess: () => reset(),
+            onError: (error) => setServerErrors(getErrorMessages(error)),
+          })
+        })}
+        onChange={() => setServerErrors([])}
+        className="flex flex-col gap-6"
+      >
         <CardContent className="flex flex-col gap-4">
           <FormField
             label="Current password"
             type="password"
             autoComplete="current-password"
             required
-            value={currentPassword}
-            onChange={handleChange(setCurrentPassword)}
+            error={errors.current_password?.message}
+            {...register('current_password')}
           />
+          {/* deps: changing the password re-checks the confirmation. */}
           <FormField
             label="New password"
             type="password"
             autoComplete="new-password"
             required
-            value={password}
-            onChange={handleChange(setPassword)}
+            error={errors.password?.message}
+            {...register('password', { deps: 'password_confirmation' })}
           />
           <FormField
             label="Confirm new password"
             type="password"
             autoComplete="new-password"
             required
-            value={passwordConfirmation}
-            onChange={handleChange(setPasswordConfirmation)}
+            error={errors.password_confirmation?.message}
+            {...register('password_confirmation')}
           />
-          <FormErrors errors={errors} />
+          <FormErrors errors={serverErrors} />
         </CardContent>
         <CardFooter>
           <Button type="submit" disabled={updateProfile.isPending}>

@@ -66,6 +66,11 @@ export default defineConfig(({ command, mode }) => {
                 name: 'vendor',
                 test: /node_modules[\\/](react|react-dom|scheduler|react-router|@tanstack[\\/]react-query|@tanstack[\\/]query-core|axios|radix-ui|@radix-ui)[\\/]/,
               },
+              // Form libraries in their own chunk, so the vendor chunk stays under 500 kB.
+              {
+                name: 'forms',
+                test: /node_modules[\\/](react-hook-form|zod|@hookform[\\/]resolvers)[\\/]/,
+              },
             ],
           },
         },

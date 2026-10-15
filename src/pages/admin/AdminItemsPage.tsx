@@ -1,4 +1,6 @@
-import { useId, useState, type ChangeEvent, type FormEvent, type MouseEvent } from 'react'
+import { useId, useState, type MouseEvent } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus } from 'lucide-react'
 import type { Item } from '@/api/types'
 import { EmptyState } from '@/components/EmptyState'
@@ -45,57 +47,48 @@ import {
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { getErrorMessages } from '@/lib/errors'
 import { formatPrice } from '@/lib/format'
-
-// price is decimal(10,2) in the database: up to 8 digits before the point, 2 after.
-const PRICE_PATTERN = /^\d{1,8}(\.\d{1,2})?$/
-const PRICE_MESSAGE = 'Price must be between 0 and 99,999,999.99 with at most 2 decimals.'
+import { itemSchema } from '@/lib/schemas'
 
 // item undefined = create. Rendered inside DialogContent, so every open starts fresh.
 function ItemForm({ item, onSaved }: { item?: Item; onSaved: () => void }) {
   const createItem = useCreateAdminItem()
   const updateItem = useUpdateAdminItem()
   const descriptionId = useId()
-  const [name, setName] = useState(item?.name ?? '')
-  const [description, setDescription] = useState(item?.description ?? '')
-  const [price, setPrice] = useState(item?.price ?? '')
-  const [errors, setErrors] = useState<string[]>([])
+  const { register, handleSubmit, formState } = useForm({
+    resolver: zodResolver(itemSchema),
+    defaultValues: {
+      name: item?.name ?? '',
+      description: item?.description ?? '',
+      price: item?.price ?? '',
+    },
+    mode: 'onTouched',
+    reValidateMode: 'onChange',
+  })
+  const { errors } = formState
+  const [serverErrors, setServerErrors] = useState<string[]>([])
   const isPending = createItem.isPending || updateItem.isPending
 
-  function handleChange(setter: (value: string) => void) {
-    return (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-      setter(event.target.value)
-      setErrors([])
-    }
-  }
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const data = { name: name.trim(), description: description.trim(), price: price.trim() }
-    if (!PRICE_PATTERN.test(data.price)) {
-      setErrors([PRICE_MESSAGE])
-      return
-    }
-    setErrors([])
-    // Only local UI here; invalidation and the toast are in the hooks.
-    const callbacks = {
-      onSuccess: onSaved,
-      onError: (error: unknown) => setErrors(getErrorMessages(error)),
-    }
-    if (item) updateItem.mutate({ id: item.id, data }, callbacks)
-    else createItem.mutate(data, callbacks)
-  }
-
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-      <FormField label="Name" required value={name} onChange={handleChange(setName)} />
+    // onChange bubbles from every field: editing the form clears the server errors.
+    <form
+      noValidate
+      onSubmit={handleSubmit((data) => {
+        setServerErrors([])
+        // Only local UI here; invalidation and the toast are in the hooks.
+        const callbacks = {
+          onSuccess: onSaved,
+          onError: (error: unknown) => setServerErrors(getErrorMessages(error)),
+        }
+        if (item) updateItem.mutate({ id: item.id, data }, callbacks)
+        else createItem.mutate(data, callbacks)
+      })}
+      onChange={() => setServerErrors([])}
+      className="flex flex-col gap-4"
+    >
+      <FormField label="Name" required error={errors.name?.message} {...register('name')} />
       <div className="flex flex-col gap-2">
         <Label htmlFor={descriptionId}>Description (optional)</Label>
-        <Textarea
-          id={descriptionId}
-          rows={3}
-          value={description}
-          onChange={handleChange(setDescription)}
-        />
+        <Textarea id={descriptionId} rows={3} {...register('description')} />
       </div>
       {/* Text, not type="number": the browser's number input would accept "1e5" and hide typos. */}
       <FormField
@@ -103,10 +96,10 @@ function ItemForm({ item, onSaved }: { item?: Item; onSaved: () => void }) {
         inputMode="decimal"
         placeholder="0.00"
         required
-        value={price}
-        onChange={handleChange(setPrice)}
+        error={errors.price?.message}
+        {...register('price')}
       />
-      <FormErrors errors={errors} />
+      <FormErrors errors={serverErrors} />
       <DialogFooter>
         <Button type="submit" disabled={isPending}>
           {isPending ? 'Saving…' : item ? 'Save' : 'Create'}
