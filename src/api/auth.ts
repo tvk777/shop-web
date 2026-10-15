@@ -4,22 +4,27 @@ import type { AuthResult, LoginRequest, SignupRequest, UserResponse } from './ty
 
 const BEARER_PREFIX = 'Bearer '
 
-function readToken(response: AxiosResponse): string {
-  const header: unknown = response.headers.authorization
-  if (typeof header !== 'string' || !header.startsWith(BEARER_PREFIX)) {
-    throw new Error('No token in the Authorization response header')
-  }
+// Reads the JWT from an "Authorization: Bearer <token>" response header; null if absent.
+export function readBearerToken(headers: AxiosResponse['headers']): string | null {
+  const header: unknown = headers.authorization
+  if (typeof header !== 'string' || !header.startsWith(BEARER_PREFIX)) return null
   return header.slice(BEARER_PREFIX.length)
+}
+
+function requireToken(response: AxiosResponse): string {
+  const token = readBearerToken(response.headers)
+  if (token === null) throw new Error('No token in the Authorization response header')
+  return token
 }
 
 export async function login(data: LoginRequest): Promise<AuthResult> {
   const response = await api.post<UserResponse>('/login', { user: data })
-  return { token: readToken(response), user: response.data.user }
+  return { token: requireToken(response), user: response.data.user }
 }
 
 export async function signup(data: SignupRequest): Promise<AuthResult> {
   const response = await api.post<UserResponse>('/signup', { user: data })
-  return { token: readToken(response), user: response.data.user }
+  return { token: requireToken(response), user: response.data.user }
 }
 
 export async function logout(): Promise<void> {

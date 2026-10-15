@@ -13,7 +13,11 @@ export function useUpdateProfile() {
     onSuccess: (user, variables) => {
       // AuthProvider reads the user from this cache entry, so the header updates at once.
       queryClient.setQueryData(queryKeys.profile, user)
-      toast.success('password' in variables ? 'Password changed' : 'Profile updated')
+      toast.success(
+        'password' in variables
+          ? 'Password changed. Other devices were logged out.'
+          : 'Profile updated',
+      )
     },
   })
 }

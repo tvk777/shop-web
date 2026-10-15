@@ -59,10 +59,10 @@ export interface Order {
   items: OrderLine[]
 }
 
-// Body of PATCH /profile. Two separate shapes, so the data form never needs a password
-// and role can never be sent.
+// Body of PATCH /profile. Two separate shapes, so the data form needs a password
+// (current_password) only for an email change, and role can never be sent.
 export type UpdateProfileRequest =
-  | { first_name: string; last_name: string; email: string }
+  | { first_name: string; last_name: string; email: string; current_password?: string }
   | { current_password: string; password: string; password_confirmation: string }
 
 // A row of GET /admin/users. orders_count is only sent by the admin list.

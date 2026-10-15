@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useMemo, useState } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { User } from '@/api/types'
 import { FormErrors } from '@/components/FormErrors'
@@ -18,24 +18,34 @@ import {
 import { useAuth } from '@/hooks/useAuth'
 import { useUpdateProfile } from '@/hooks/useUpdateProfile'
 import { getErrorMessages } from '@/lib/errors'
-import { passwordSchema, profileSchema } from '@/lib/schemas'
+import { emailChanged, passwordSchema, profileSchema } from '@/lib/schemas'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
 
+// current_password is only asked for (and sent) when the email changes.
 function personalData(user: User) {
-  return { first_name: user.first_name, last_name: user.last_name, email: user.email }
+  return {
+    first_name: user.first_name,
+    last_name: user.last_name,
+    email: user.email,
+    current_password: '',
+  }
 }
 
 // Each form has its own mutation, so pending state and errors never mix between them.
 function PersonalDataForm({ user }: { user: User }) {
   const updateProfile = useUpdateProfile()
-  const { register, handleSubmit, formState, reset } = useForm({
-    resolver: zodResolver(profileSchema),
+  // The schema compares with the saved email, so it is rebuilt when that changes.
+  const resolver = useMemo(() => zodResolver(profileSchema(user.email)), [user.email])
+  const { register, handleSubmit, formState, reset, resetField, control } = useForm({
+    resolver,
     defaultValues: personalData(user),
     mode: 'onTouched',
     reValidateMode: 'onChange',
   })
   const { errors, isDirty } = formState
   const [serverErrors, setServerErrors] = useState<string[]>([])
+  const email = useWatch({ control, name: 'email' })
+  const changingEmail = emailChanged(email, user.email)
 
   return (
     <Card>
@@ -48,10 +58,13 @@ function PersonalDataForm({ user }: { user: User }) {
       {/* onChange bubbles from every field: editing the form clears the server errors. */}
       <form
         noValidate
-        onSubmit={handleSubmit((values) => {
+        onSubmit={handleSubmit(({ current_password, ...data }) => {
           setServerErrors([])
-          updateProfile.mutate(values, {
-            // The saved user becomes the new baseline, so Save is disabled again.
+          // Never send the password for a name-only change.
+          const body = emailChanged(data.email, user.email) ? { ...data, current_password } : data
+          updateProfile.mutate(body, {
+            // The saved user becomes the new baseline: Save is disabled again and the
+            // password field is cleared and hidden.
             onSuccess: (saved) => reset(personalData(saved)),
             onError: (error) => setServerErrors(getErrorMessages(error)),
           })
@@ -80,8 +93,25 @@ function PersonalDataForm({ user }: { user: User }) {
             autoComplete="email"
             required
             error={errors.email?.message}
-            {...register('email')}
+            {...register('email', {
+              // Back to the saved email: drop the hidden password, so it is never kept
+              // and does not leave the form dirty.
+              onChange: (event) => {
+                if (!emailChanged(event.target.value, user.email)) resetField('current_password')
+              },
+            })}
           />
+          {changingEmail && (
+            <FormField
+              label="Current password"
+              type="password"
+              autoComplete="current-password"
+              required
+              hint="Required to change your email"
+              error={errors.current_password?.message}
+              {...register('current_password')}
+            />
+          )}
           <FormErrors errors={serverErrors} />
         </CardContent>
         <CardFooter>

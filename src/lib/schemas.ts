@@ -47,7 +47,26 @@ export const signupSchema = z
   .object({ ...personalData, password: newPassword, password_confirmation: z.string() })
   .refine(passwordsMatch, passwordsMatchParams)
 
-export const profileSchema = z.object(personalData)
+// The backend treats emails as case-insensitive and trims them, so "A@b.co " is not a change.
+export function emailChanged(input: string, saved: string): boolean {
+  return input.trim().toLowerCase() !== saved.trim().toLowerCase()
+}
+
+const emailAndPassword = z.object({ email: z.string(), current_password: z.string() })
+
+// Changing the email needs the current password; names change without it.
+export const profileSchema = (savedEmail: string) =>
+  z
+    .object({ ...personalData, current_password: z.string() })
+    .refine(
+      (data) => !emailChanged(data.email, savedEmail) || data.current_password !== '',
+      {
+        message: 'Current password is required to change your email.',
+        path: ['current_password'],
+        // Same as passwordsMatchParams: check even when another field failed.
+        when: (payload) => emailAndPassword.safeParse(payload.value).success,
+      },
+    )
 
 export const passwordSchema = z
   .object({
