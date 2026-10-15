@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { getAdminUsers, updateAdminUser } from '@/api/admin'
+import { deleteAdminUser, getAdminUsers, updateAdminUser } from '@/api/admin'
 import type { AdminUserUpdate, User } from '@/api/types'
 import { queryKeys } from '@/lib/queryKeys'
 
@@ -24,6 +24,19 @@ export function useUpdateAdminUser() {
       const current = queryClient.getQueryData<User>(queryKeys.profile)
       if (current?.id === user.id) queryClient.setQueryData(queryKeys.profile, user)
       toast.success(`${user.first_name} ${user.last_name} updated`)
+    },
+  })
+}
+
+// A 422 (your own account or the last admin) is left to the dialog.
+export function useDeleteAdminUser() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: number) => deleteAdminUser(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.admin.users })
+      toast.success('User deleted')
     },
   })
 }

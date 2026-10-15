@@ -65,6 +65,11 @@ export type UpdateProfileRequest =
   | { first_name: string; last_name: string; email: string }
   | { current_password: string; password: string; password_confirmation: string }
 
+// A row of GET /admin/users. orders_count is only sent by the admin list.
+export interface AdminUser extends User {
+  orders_count: number
+}
+
 // Body of PATCH /admin/users/:id. Passwords are not editable here.
 export interface AdminUserUpdate {
   first_name: string
