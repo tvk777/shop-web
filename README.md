@@ -93,6 +93,9 @@ The API origin must also be listed in `connect-src` of the Content-Security-Poli
 - `src/pages` route pages
 - `src/components` shared components
 - `src/components/ui` shadcn/ui components (generated)
+- `src/styles/shadcn.css` shadcn's base styles, copied from the shadcn package
+
+The shadcn CLI is not installed. Add new components with `npx shadcn@latest add <name>`.
 
 ## Demo accounts
 
