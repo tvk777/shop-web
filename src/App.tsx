@@ -5,6 +5,7 @@ import { PublicLayout } from '@/components/layout/PublicLayout'
 import { RedirectIfAuthenticated } from '@/components/RedirectIfAuthenticated'
 import { RequireAdmin } from '@/components/RequireAdmin'
 import { RequireAuth } from '@/components/RequireAuth'
+import { RequireUser } from '@/components/RequireUser'
 import { AdminPage } from '@/pages/AdminPage'
 import { CartPage } from '@/pages/CartPage'
 import { CatalogPage } from '@/pages/CatalogPage'
@@ -44,9 +45,14 @@ const router = createBrowserRouter([
       {
         element: <AppLayout />,
         children: [
-          { path: '/', element: <CatalogPage /> },
-          { path: '/cart', element: <CartPage /> },
-          { path: '/orders', element: <OrdersPage /> },
+          {
+            element: <RequireUser />,
+            children: [
+              { path: '/', element: <CatalogPage /> },
+              { path: '/cart', element: <CartPage /> },
+              { path: '/orders', element: <OrdersPage /> },
+            ],
+          },
           { path: '/profile', element: <ProfilePage /> },
           {
             element: <RequireAdmin />,

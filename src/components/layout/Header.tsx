@@ -13,25 +13,36 @@ import {
 } from '@/components/ui/sheet'
 import { useAuth } from '@/hooks/useAuth'
 import { useCart } from '@/hooks/useCart'
+import { homePath } from '@/lib/routes'
 import { cn } from '@/lib/utils'
 
+interface NavItem {
+  to: string
+  label: string
+  end?: boolean
+  // Shown only to this role; without it the link is shown to everyone.
+  only?: 'user' | 'admin'
+}
+
 // Single source of links for the desktop nav and the mobile sheet.
-const NAV_ITEMS = [
-  { to: '/', label: 'Catalog', end: true },
-  { to: '/cart', label: 'Cart' },
-  { to: '/orders', label: 'My orders' },
+// An admin gets only Admin and Profile (the API answers 403 to admins on /orders).
+const NAV_ITEMS: NavItem[] = [
+  { to: '/', label: 'Catalog', end: true, only: 'user' },
+  { to: '/cart', label: 'Cart', only: 'user' },
+  { to: '/orders', label: 'My orders', only: 'user' },
+  { to: '/admin', label: 'Admin', only: 'admin' },
   { to: '/profile', label: 'Profile' },
-  { to: '/admin', label: 'Admin', adminOnly: true },
 ]
 
 // Active link reuses the shadcn button styles, so no custom colors are needed.
 function NavLinks({ mobile, onNavigate }: { mobile?: boolean; onNavigate?: () => void }) {
   const { isAdmin } = useAuth()
   const { itemCount } = useCart()
+  const role = isAdmin ? 'admin' : 'user'
 
   return (
     <>
-      {NAV_ITEMS.filter((item) => !item.adminOnly || isAdmin).map((item) => (
+      {NAV_ITEMS.filter((item) => !item.only || item.only === role).map((item) => (
         <NavLink
           key={item.to}
           to={item.to}
@@ -61,7 +72,7 @@ function NavLinks({ mobile, onNavigate }: { mobile?: boolean; onNavigate?: () =>
 }
 
 export function Header() {
-  const { user, logout } = useAuth()
+  const { user, isAdmin, logout } = useAuth()
   const { pathname } = useLocation()
   const [open, setOpen] = useState(false)
   const [openedAt, setOpenedAt] = useState(pathname)
@@ -78,7 +89,7 @@ export function Header() {
   return (
     <header className="border-b">
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-2 px-4 py-3">
-        <Link to="/" className="font-semibold">
+        <Link to={homePath(isAdmin)} className="font-semibold">
           Shop
         </Link>
 
