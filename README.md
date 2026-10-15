@@ -25,6 +25,23 @@ Install first with `npm install`.
 - `npm run dev` starts the dev server at http://localhost:5173.
 - `npm run build` checks types and builds the app into `dist/`.
 - `npm run lint` runs oxlint.
+- `npm test` runs the unit tests once with Vitest.
+- `npm run test:watch` re-runs the unit tests on every change.
+
+## Tests
+
+The unit tests cover the small functions the app relies on:
+
+- money and price formatting
+- quantity limits (1 to 99)
+- the cart reducer
+- reading the saved cart from the browser
+- API error messages shown to the user
+- parsing unavailable items at checkout
+
+The tests run in Node. No browser is needed.
+
+Each test file sits next to the code it tests, as `*.test.ts`. For example, `src/lib/format.test.ts` tests `src/lib/format.ts`.
 
 ## Environment
 
