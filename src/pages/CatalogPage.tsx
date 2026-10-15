@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useEffectEvent, useState } from 'react'
 import { useSearchParams } from 'react-router'
 import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
@@ -27,13 +27,17 @@ export function CatalogPage() {
 
   const debounced = useDebouncedValue(input, 300).trim()
 
+  // Reads the latest urlQ and setSearchParams without making them triggers:
+  // only a new debounced value should write to the URL.
+  const writeQuery = useEffectEvent((q: string) => {
+    // Skip when the URL already matches (after Clear search, or a back/forward navigation).
+    if (q === urlQ) return
+    setSearchParams(q ? { q } : {}, { replace: true })
+  })
+
   useEffect(() => {
-    // Skip when the URL already matches (also protects a back navigation from a stale debounced value).
-    if (debounced === urlQ) return
-    setSearchParams(debounced ? { q: debounced } : {}, { replace: true })
-    // urlQ is left out on purpose: the URL changing must not re-trigger a write.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debounced, setSearchParams])
+    writeQuery(debounced)
+  }, [debounced])
 
   const { data, isPending, isError, error, refetch, isPlaceholderData } =
     useItems(urlQ)
