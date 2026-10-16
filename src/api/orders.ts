@@ -1,7 +1,7 @@
 import { isAxiosError } from 'axios'
 import { api } from '@/lib/api'
 import type { CartLine } from '@/context/cartContext'
-import type { Order } from './types'
+import type { Order, Paginated } from './types'
 
 // Only ids and quantities are sent: the server calculates prices and the total.
 export async function createOrder(lines: Pick<CartLine, 'itemId' | 'quantity'>[]): Promise<Order> {
@@ -29,8 +29,8 @@ export function parseUnavailableItemIds(error: unknown): number[] | null {
   return null
 }
 
-// GET /orders returns every order of the current user with its lines, newest first.
-export async function getOrders(): Promise<Order[]> {
-  const response = await api.get<Order[]>('/orders')
+// GET /orders returns one page of the current user's orders with their lines, newest first.
+export async function getOrders(page: number): Promise<Paginated<Order>> {
+  const response = await api.get<Paginated<Order>>('/orders', { params: { page } })
   return response.data
 }

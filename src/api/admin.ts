@@ -1,10 +1,11 @@
 import { api } from '@/lib/api'
-import type { AdminUser, AdminUserUpdate, Item, ItemInput, User } from './types'
+import type { AdminUser, AdminUserUpdate, Item, ItemInput, Paginated, User } from './types'
 
-// The admin endpoints return bare arrays and records (no { user } / { item } wrapper).
+// The lists are paginated ({ data, meta }); single records come bare (no { user } / { item }
+// wrapper). per_page is not sent: the server default (20) is used.
 
-export async function getAdminUsers(): Promise<AdminUser[]> {
-  const response = await api.get<AdminUser[]>('/admin/users')
+export async function getAdminUsers(page: number): Promise<Paginated<AdminUser>> {
+  const response = await api.get<Paginated<AdminUser>>('/admin/users', { params: { page } })
   return response.data
 }
 
@@ -20,9 +21,15 @@ export async function deleteAdminUser(id: number): Promise<void> {
 }
 
 // q is left out when empty, as in GET /items.
-export async function getAdminItems(q?: string): Promise<Item[]> {
-  const response = await api.get<Item[]>('/admin/items', {
-    params: q ? { q } : undefined,
+export async function getAdminItems({
+  q,
+  page,
+}: {
+  q?: string
+  page: number
+}): Promise<Paginated<Item>> {
+  const response = await api.get<Paginated<Item>>('/admin/items', {
+    params: q ? { q, page } : { page },
   })
   return response.data
 }

@@ -1,4 +1,4 @@
-import { useId, useState, type MouseEvent } from 'react'
+import { useId, useRef, useState, type MouseEvent } from 'react'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { AdminUser, Role, User } from '@/api/types'
@@ -7,6 +7,7 @@ import { ErrorState } from '@/components/ErrorState'
 import { FormErrors } from '@/components/FormErrors'
 import { FormField } from '@/components/FormField'
 import { LoadingState } from '@/components/LoadingState'
+import { Pagination } from '@/components/Pagination'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,6 +46,7 @@ import {
 } from '@/components/ui/table'
 import { useAdminUsers, useDeleteAdminUser, useUpdateAdminUser } from '@/hooks/useAdminUsers'
 import { useAuth } from '@/hooks/useAuth'
+import { useClampPage, usePageParam } from '@/hooks/usePageParam'
 import { getErrorMessages } from '@/lib/errors'
 import { adminUserSchema } from '@/lib/schemas'
 
@@ -188,7 +190,10 @@ function DeleteUserContent({ user, onDeleted }: { user: AdminUser; onDeleted: ()
 
 export function AdminUsersPage() {
   const { user: currentUser } = useAuth()
-  const { data, isPending, isError, error, refetch } = useAdminUsers()
+  const { page, setPage } = usePageParam()
+  const { data, isPending, isError, error, refetch, isPlaceholderData } = useAdminUsers(page)
+  // Also covers deleting the last user on the last page: the refetch reports fewer pages.
+  const outOfRange = useClampPage(page, isPlaceholderData ? undefined : data?.meta, setPage)
   // Each dialog keeps its user separately from `open`, so the content stays while it closes.
   const [editing, setEditing] = useState<AdminUser | null>(null)
   const [open, setOpen] = useState(false)
@@ -205,9 +210,17 @@ export function AdminUsersPage() {
     setDeleteOpen(true)
   }
 
-  if (isPending) return <LoadingState label="Loading users…" />
+  // Focusing the count scrolls to the top of the list and keeps keyboard focus on the page
+  // while the clicked button is disabled.
+  const countRef = useRef<HTMLParagraphElement>(null)
+  function goToPage(next: number) {
+    setPage(next)
+    countRef.current?.focus()
+  }
+
+  if (isPending || outOfRange) return <LoadingState label="Loading users…" />
   if (isError) return <ErrorState error={error} onRetry={() => refetch()} />
-  if (data.length === 0) return <EmptyState title="No users" />
+  if (data.data.length === 0) return <EmptyState title="No users" />
 
   const youLabel = (user: User) =>
     user.id === currentUser?.id && <span className="text-muted-foreground"> (you)</span>
@@ -228,66 +241,76 @@ export function AdminUsersPage() {
 
   return (
     <>
-      <p className="mb-4 text-sm text-muted-foreground">
-        {data.length} {data.length === 1 ? 'user' : 'users'}
-      </p>
+      <div className={isPlaceholderData ? 'opacity-60' : undefined}>
+        {/* The total over all pages, not just this one. */}
+        <p ref={countRef} tabIndex={-1} className="mb-4 text-sm text-muted-foreground">
+          {data.meta.total} {data.meta.total === 1 ? 'user' : 'users'}
+        </p>
 
-      {/* md and up */}
-      <div className="hidden md:block">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead className="text-right">Orders</TableHead>
-              <TableHead>
-                <span className="sr-only">Actions</span>
-              </TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell>
+        {/* md and up */}
+        <div className="hidden md:block">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead className="text-right">Orders</TableHead>
+                <TableHead>
+                  <span className="sr-only">Actions</span>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {data.data.map((user) => (
+                <TableRow key={user.id}>
+                  <TableCell>
+                    {fullName(user)}
+                    {youLabel(user)}
+                  </TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>
+                    <Badge variant="secondary">{user.role}</Badge>
+                  </TableCell>
+                  <TableCell className="text-right">{user.orders_count}</TableCell>
+                  <TableCell>
+                    <div className="flex justify-end">{actions(user)}</div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* below md */}
+        <ul className="divide-y md:hidden">
+          {data.data.map((user) => (
+            <li key={user.id} className="flex flex-col gap-2 py-3">
+              <div className="min-w-0">
+                <p className="font-medium break-words">
                   {fullName(user)}
                   {youLabel(user)}
-                </TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>
+                </p>
+                <p className="text-sm break-all text-muted-foreground">{user.email}</p>
+                <div className="mt-1 flex items-center gap-2">
                   <Badge variant="secondary">{user.role}</Badge>
-                </TableCell>
-                <TableCell className="text-right">{user.orders_count}</TableCell>
-                <TableCell>
-                  <div className="flex justify-end">{actions(user)}</div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* below md */}
-      <ul className="divide-y md:hidden">
-        {data.map((user) => (
-          <li key={user.id} className="flex flex-col gap-2 py-3">
-            <div className="min-w-0">
-              <p className="font-medium break-words">
-                {fullName(user)}
-                {youLabel(user)}
-              </p>
-              <p className="text-sm break-all text-muted-foreground">{user.email}</p>
-              <div className="mt-1 flex items-center gap-2">
-                <Badge variant="secondary">{user.role}</Badge>
-                <span className="text-sm text-muted-foreground">
-                  {ordersLabel(user.orders_count)}
-                </span>
+                  <span className="text-sm text-muted-foreground">
+                    {ordersLabel(user.orders_count)}
+                  </span>
+                </div>
               </div>
-            </div>
-            {actions(user)}
-          </li>
-        ))}
-      </ul>
+              {actions(user)}
+            </li>
+          ))}
+        </ul>
+
+        <Pagination
+          page={page}
+          totalPages={data.meta.total_pages}
+          onPageChange={goToPage}
+          disabled={isPlaceholderData}
+        />
+      </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent>

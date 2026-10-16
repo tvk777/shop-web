@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Link } from 'react-router'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import type { Order } from '@/api/types'
@@ -6,11 +6,13 @@ import { EmptyState } from '@/components/EmptyState'
 import { ErrorState } from '@/components/ErrorState'
 import { LoadingState } from '@/components/LoadingState'
 import { PageHeader } from '@/components/PageHeader'
+import { Pagination } from '@/components/Pagination'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
 import { useOrders } from '@/hooks/useOrders'
 import { formatDateTime, formatPrice, itemsLabel, toCents } from '@/lib/format'
 import { useDocumentTitle } from '@/hooks/useDocumentTitle'
+import { useClampPage, usePageParam } from '@/hooks/usePageParam'
 
 function OrderCard({ order }: { order: Order }) {
   // Local to each card, so several orders can be open at once.
@@ -66,17 +68,27 @@ function OrderCard({ order }: { order: Order }) {
 
 export function OrdersPage() {
   useDocumentTitle('My orders')
-  const { data, isPending, isError, error, refetch } = useOrders()
+  const { page, setPage } = usePageParam()
+  const { data, isPending, isError, error, refetch, isPlaceholderData } = useOrders(page)
+  const outOfRange = useClampPage(page, isPlaceholderData ? undefined : data?.meta, setPage)
+
+  // Focusing the count scrolls to the top of the list and keeps keyboard focus on the page
+  // while the clicked button is disabled.
+  const countRef = useRef<HTMLParagraphElement>(null)
+  function goToPage(next: number) {
+    setPage(next)
+    countRef.current?.focus()
+  }
 
   return (
     <>
       <PageHeader title="My orders" />
 
-      {isPending ? (
+      {isPending || outOfRange ? (
         <LoadingState label="Loading orders…" />
       ) : isError ? (
         <ErrorState error={error} onRetry={() => refetch()} />
-      ) : data.length === 0 ? (
+      ) : data.data.length === 0 ? (
         <EmptyState
           title="No orders yet"
           description="Orders you place will appear here."
@@ -87,14 +99,26 @@ export function OrdersPage() {
           }
         />
       ) : (
-        // Newest first, in the order the server returns them.
-        <ul className="space-y-4">
-          {data.map((order) => (
-            <li key={order.id}>
-              <OrderCard order={order} />
-            </li>
-          ))}
-        </ul>
+        <div className={isPlaceholderData ? 'opacity-60' : undefined}>
+          {/* The total over all pages, not just this one. */}
+          <p ref={countRef} tabIndex={-1} className="mb-4 text-sm text-muted-foreground">
+            {data.meta.total} {data.meta.total === 1 ? 'order' : 'orders'}
+          </p>
+          {/* Newest first, in the order the server returns them. */}
+          <ul className="space-y-4">
+            {data.data.map((order) => (
+              <li key={order.id}>
+                <OrderCard order={order} />
+              </li>
+            ))}
+          </ul>
+          <Pagination
+            page={page}
+            totalPages={data.meta.total_pages}
+            onPageChange={goToPage}
+            disabled={isPlaceholderData}
+          />
+        </div>
       )}
     </>
   )

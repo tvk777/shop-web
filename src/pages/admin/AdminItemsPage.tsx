@@ -1,4 +1,4 @@
-import { useId, useState, type MouseEvent } from 'react'
+import { useId, useRef, useState, type MouseEvent } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Plus } from 'lucide-react'
@@ -8,6 +8,7 @@ import { ErrorState } from '@/components/ErrorState'
 import { FormErrors } from '@/components/FormErrors'
 import { FormField } from '@/components/FormField'
 import { LoadingState } from '@/components/LoadingState'
+import { Pagination } from '@/components/Pagination'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -45,6 +46,7 @@ import {
   useUpdateAdminItem,
 } from '@/hooks/useAdminItems'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
+import { useClampPage, usePageParam } from '@/hooks/usePageParam'
 import { getErrorMessages } from '@/lib/errors'
 import { formatPrice } from '@/lib/format'
 import { itemSchema } from '@/lib/schemas'
@@ -146,7 +148,26 @@ function DeleteItemContent({ item, onDeleted }: { item: Item; onDeleted: () => v
 export function AdminItemsPage() {
   const [input, setInput] = useState('')
   const q = useDebouncedValue(input, 300).trim()
-  const { data, isPending, isError, error, refetch, isPlaceholderData } = useAdminItems(q)
+  const { page, setPage } = usePageParam()
+  const { data, isPending, isError, error, refetch, isPlaceholderData } = useAdminItems(q, page)
+  // Also covers deleting the last item on the last page: the refetch reports fewer pages.
+  const outOfRange = useClampPage(page, isPlaceholderData ? undefined : data?.meta, setPage)
+
+  // The search is local state, but changing it starts again on page 1. Done here, before
+  // the debounced q changes, so no request goes out for the new q with the old page.
+  // replace: typing is not a navigation step.
+  function changeSearch(value: string) {
+    setInput(value)
+    if (page !== 1) setPage(1, { replace: true })
+  }
+
+  // Focusing the count scrolls to the top of the list and keeps keyboard focus on the page
+  // while the clicked button is disabled.
+  const countRef = useRef<HTMLParagraphElement>(null)
+  function goToPage(next: number) {
+    setPage(next)
+    countRef.current?.focus()
+  }
 
   // Each dialog keeps its item separately from `open`, so the content stays while it closes.
   const [formItem, setFormItem] = useState<Item | undefined>(undefined)
@@ -183,7 +204,7 @@ export function AdminItemsPage() {
           aria-label="Search items"
           placeholder="Search items…"
           value={input}
-          onChange={(event) => setInput(event.target.value)}
+          onChange={(event) => changeSearch(event.target.value)}
           className="min-w-0 flex-1"
         />
         <Button onClick={() => openForm()}>
@@ -192,17 +213,17 @@ export function AdminItemsPage() {
         </Button>
       </div>
 
-      {isPending ? (
+      {isPending || outOfRange ? (
         <LoadingState label="Loading items…" />
       ) : isError ? (
         <ErrorState error={error} onRetry={() => refetch()} />
-      ) : data.length === 0 ? (
+      ) : data.data.length === 0 ? (
         <EmptyState
           title={q ? `No items match “${q}”` : 'No items yet'}
           description={q ? undefined : 'Create the first item with “New item”.'}
           action={
             q ? (
-              <Button variant="outline" onClick={() => setInput('')}>
+              <Button variant="outline" onClick={() => changeSearch('')}>
                 Clear search
               </Button>
             ) : undefined
@@ -210,8 +231,14 @@ export function AdminItemsPage() {
         />
       ) : (
         <div className={isPlaceholderData ? 'opacity-60' : undefined}>
-          <p aria-live="polite" className="mb-4 text-sm text-muted-foreground">
-            {data.length} {data.length === 1 ? 'item' : 'items'}
+          {/* The total over all pages, not just this one. */}
+          <p
+            ref={countRef}
+            tabIndex={-1}
+            aria-live="polite"
+            className="mb-4 text-sm text-muted-foreground"
+          >
+            {data.meta.total} {data.meta.total === 1 ? 'item' : 'items'}
           </p>
 
           {/* md and up; whitespace-normal lets long descriptions wrap inside the table. */}
@@ -228,7 +255,7 @@ export function AdminItemsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.map((item) => (
+                {data.data.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell className="font-medium whitespace-normal">{item.name}</TableCell>
                     <TableCell className="whitespace-normal text-muted-foreground">
@@ -244,7 +271,7 @@ export function AdminItemsPage() {
 
           {/* below md */}
           <ul className="divide-y md:hidden">
-            {data.map((item) => (
+            {data.data.map((item) => (
               <li key={item.id} className="flex flex-col gap-2 py-3">
                 <div className="flex items-start justify-between gap-4">
                   <p className="min-w-0 font-medium break-words">{item.name}</p>
@@ -257,6 +284,13 @@ export function AdminItemsPage() {
               </li>
             ))}
           </ul>
+
+          <Pagination
+            page={page}
+            totalPages={data.meta.total_pages}
+            onPageChange={goToPage}
+            disabled={isPlaceholderData}
+          />
         </div>
       )}
 

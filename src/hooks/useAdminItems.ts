@@ -4,11 +4,11 @@ import { createAdminItem, deleteAdminItem, getAdminItems, updateAdminItem } from
 import type { Item, ItemInput } from '@/api/types'
 import { queryKeys } from '@/lib/queryKeys'
 
-// keepPreviousData keeps the old list on screen while a new search loads.
-export function useAdminItems(q: string) {
+// keepPreviousData keeps the old page on screen while a new search or page loads.
+export function useAdminItems(q: string, page: number) {
   return useQuery({
-    queryKey: queryKeys.admin.items.list(q),
-    queryFn: () => getAdminItems(q || undefined),
+    queryKey: queryKeys.admin.items.list(q, page),
+    queryFn: () => getAdminItems({ q: q || undefined, page }),
     placeholderData: keepPreviousData,
   })
 }

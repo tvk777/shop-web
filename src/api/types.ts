@@ -84,3 +84,17 @@ export interface ItemInput {
   description: string
   price: string
 }
+
+// meta of every list endpoint. total_pages is at least 1, even for an empty list.
+export interface PaginationMeta {
+  page: number
+  per_page: number
+  total: number
+  total_pages: number
+}
+
+// Body of GET /items, /orders, /admin/users and /admin/items.
+export interface Paginated<T> {
+  data: T[]
+  meta: PaginationMeta
+}
